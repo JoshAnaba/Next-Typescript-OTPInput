@@ -35,37 +35,78 @@ const OTPInput = ({ value, valueLength, onChange }: Props) => {
 
   }, [value, valueLength])
 
+  const focusToNextInput = (target: HTMLElement) => {
+    const nextElementSibling = target.nextElementSibling as HTMLInputElement | null;
+
+    if (nextElementSibling) {
+      nextElementSibling.focus();
+    }
+  };
+  const focusToPrevInput = (target: HTMLElement) => {
+    const previousElementSibling =
+      target.previousElementSibling as HTMLInputElement | null;
+
+    if (previousElementSibling) {
+      previousElementSibling.focus();
+    }
+  };
+
+
   const inputOnChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     idx: number
   ) => {
 
     const target = e.target
-    const targetValue = target.value
+    let targetValue = target.value
     const isTargetValueDigit = RE_DIGIT.test(targetValue);
 
     if (!isTargetValueDigit && targetValue !== '') {
       return
     }
 
-    const newValue = value.substring(0, idx) + targetValue + value.substring(idx + 1);
+    targetValue = isTargetValueDigit ? targetValue : ' ';
 
-    onChange(newValue)
+    const targetValueLength = targetValue.length;
 
-    if (!isTargetValueDigit) {
-      return;
-    }
+    if (targetValueLength === 1) {
+      const newValue =
+        value.substring(0, idx) + targetValue + value.substring(idx + 1);
 
-    const nextElementSibling = target.nextElementSibling as HTMLInputElement | null;
+      onChange(newValue);
 
-    if (nextElementSibling) {
-      nextElementSibling.focus();
+      if (!isTargetValueDigit) {
+        return;
+      }
+
+      const nextElementSibling = target.nextElementSibling as HTMLInputElement | null;
+
+      if (nextElementSibling) {
+        nextElementSibling.focus();
+      }
+      focusToNextInput(target);
+    } else if (targetValueLength === valueLength) {
+
+      onChange(targetValue);
+
+      target.blur();
     }
   }
 
   const inputOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const { key } = e;
     const target = e.target as HTMLInputElement;
     const targetValue = target.value;
+    // if arrow right and down keys are pressed (on the condition that the current input has a value) move focus to the right
+    if ((key === 'ArrowRight' || key === 'ArrowDown') && targetValue) {
+      e.preventDefault();
+      return focusToNextInput(target);
+    }
+
+    if (key === 'ArrowLeft' || key === 'ArrowUp') {
+      e.preventDefault();
+      return focusToPrevInput(target);
+    }
      // keep the selection range position
     // if the same digit was typed
     target.setSelectionRange(0, targetValue.length);
@@ -73,6 +114,8 @@ const OTPInput = ({ value, valueLength, onChange }: Props) => {
     if (e.key !== 'Backspace' || target.value !== '') {
       return;
     }
+
+    focusToPrevInput(target);
 
     const previousElementSibling =
       target.previousElementSibling as HTMLInputElement | null;
